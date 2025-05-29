@@ -336,7 +336,7 @@ export const apiTranslate = async ({
       let deepModels = (await getSettingWithDefault()).transApis[translator]?.thinkIgnore || '';
       deepModels = deepModels.split(',').filter(model => model.trim() !== '');
       if (deepModels.some(model => res?.model?.startsWith(model))) {
-        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, '');
+        trText = res?.response.replace(/<think>[\s\S]*<\/think>[\s]*/i, '');
       }else{
         trText = res?.response;
       }
