@@ -1,7 +1,7 @@
 import { isExt, isGm } from "./client";
 import { sendBgMsg } from "./msg";
 import { taskPool } from "./pool";
-//import { storage,getSettingWithDefault } from "./storage";
+import { getSettingWithDefault } from "./storage";
 
 
 import {
