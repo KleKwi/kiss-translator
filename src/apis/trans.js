@@ -12,6 +12,7 @@ import {
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
@@ -57,26 +58,16 @@ const keyPick = (translator, key = "", cacheMap) => {
 };
 
 const genGoogle = ({ text, from, to, url, key }) => {
-  const params = {
-    client: "gtx",
-    dt: "t",
-    dj: 1,
-    ie: "UTF-8",
-    sl: from,
-    tl: to,
-    q: text,
-  };
-  const input = `${url}?${queryString.stringify(params)}`;
+  const body = JSON.stringify([[ [text], from, to ], "wt_lib"]);
   const init = {
+    method: "POST",
     headers: {
-      "Content-type": "application/json",
+      "Content-Type": "application/json+protobuf",
+      "X-Goog-API-Key": key,
     },
+    body,
   };
-  if (key) {
-    init.headers.Authorization = `Bearer ${key}`;
-  }
-
-  return [input, init];
+  return [url, init];
 };
 
 const genMicrosoft = async ({ text, from, to }) => {
@@ -191,25 +182,35 @@ const genOpenAI = ({
   to,
   url,
   key,
-  prompt,
+  systemPrompt,
+  userPrompt,
   model,
   temperature,
   maxTokens,
 }) => {
-  prompt = prompt
+  // 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
+  // if (!prompt.includes(INPUT_PLACE_TEXT)) {
+  //   prompt += `\nSource Text: ${INPUT_PLACE_TEXT}`;
+  // }
+  systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to);
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     model,
     messages: [
       {
         role: "system",
-        content: prompt,
+        content: systemPrompt,
       },
       {
         role: "user",
-        content: text,
+        content: userPrompt,
       },
     ],
     temperature,
@@ -229,26 +230,30 @@ const genOpenAI = ({
   return [url, init];
 };
 
-const genGemini = ({ text, from, to, url, key, prompt, model }) => {
+const genGemini = ({ text, from, to, url, key, systemPrompt, userPrompt, model }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
-  prompt = prompt
+  systemPrompt = systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
-    contents: [
-      {
-        // role: "user",
-        parts: [
-          {
-            text: prompt,
-          },
-        ],
-      },
-    ],
+    system_instruction: {
+      parts: {
+        text: systemPrompt,
+      }
+    },
+    contents: {
+      parts: {
+        text: userPrompt,
+      }
+    }
   };
 
   const init = {
@@ -262,15 +267,67 @@ const genGemini = ({ text, from, to, url, key, prompt, model }) => {
   return [url, init];
 };
 
-const genOllama = ({ text, from, to, url, key, prompt, model }) => {
-  prompt = prompt
+const genClaude = ({
+  text,
+  from,
+  to,
+  url,
+  key,
+  systemPrompt,
+  userPrompt,
+  model,
+  temperature,
+  maxTokens,
+}) => {
+  systemPrompt = systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     model,
-    prompt,
+    system: systemPrompt,
+    messages: [
+      {
+        role: "user",
+        content: userPrompt,
+      },
+    ],
+    temperature,
+    max_tokens: maxTokens,
+  };
+
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+      "anthropic-version": "2023-06-01",
+      "x-api-key": key,
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
+
+  return [url, init];
+};
+
+const genOllama = ({ text, from, to, url, key, systemPrompt, userPrompt, model }) => {
+  systemPrompt = systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+
+  const data = {
+    model,
+    system: systemPrompt,
+    prompt: userPrompt,
     stream: false,
   };
 
@@ -355,6 +412,7 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_OPENAI_2:
     case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI:
+    case OPT_TRANS_CLAUDE:
     case OPT_TRANS_CLOUDFLAREAI:
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
@@ -391,6 +449,8 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
       return genOpenAI(args);
     case OPT_TRANS_GEMINI:
       return genGemini(args);
+    case OPT_TRANS_CLAUDE:
+      return genClaude(args);
     case OPT_TRANS_CLOUDFLAREAI:
       return genCloudflareAI(args);
     case OPT_TRANS_OLLAMA:

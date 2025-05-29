@@ -39,7 +39,8 @@ export const CLIENT_CHROME = "chrome";
 export const CLIENT_EDGE = "edge";
 export const CLIENT_FIREFOX = "firefox";
 export const CLIENT_USERSCRIPT = "userscript";
-export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX];
+export const CLIENT_THUNDERBIRD = "thunderbird";
+export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX, CLIENT_THUNDERBIRD];
 
 export const KV_RULES_KEY = "kiss-rules.json";
 export const KV_WORDS_KEY = "kiss-words.json";
@@ -86,8 +87,10 @@ export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
 export const URL_MICROSOFT_LANGDETECT =
   "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
 
-export const URL_GOOGLE_TRAN =
-  "https://translate.googleapis.com/translate_a/single";
+export const URL_GOOGLE_TRAN = "https://translate-pa.googleapis.com/v1/translateHtml";
+
+export const DEFAULT_GOOGLE_API_KEY = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";
+
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 export const URL_BAIDU_SUGGEST = "https://fanyi.baidu.com/sug";
 export const URL_BAIDU_TTS = "https://fanyi.baidu.com/gettts";
@@ -116,6 +119,7 @@ export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_OPENAI_2 = "OpenAI2";
 export const OPT_TRANS_OPENAI_3 = "OpenAI3";
 export const OPT_TRANS_GEMINI = "Gemini";
+export const OPT_TRANS_CLAUDE = "Claude";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_OLLAMA = "Ollama";
 export const OPT_TRANS_OLLAMA_2 = "Ollama2";
@@ -138,6 +142,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
@@ -288,6 +293,9 @@ export const OPT_LANGS_SPECIAL = {
   ),
   [OPT_TRANS_GEMINI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_CLAUDE]: new Map(
+      OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_OLLAMA]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
@@ -522,7 +530,8 @@ const defaultOpenaiApi = {
   url: "https://api.openai.com/v1/chat/completions",
   key: "",
   model: "gpt-4",
-  prompt: `You will be provided with a sentence in ${INPUT_PLACE_FROM}, and your task is to translate it into ${INPUT_PLACE_TO}.`,
+  systemPrompt: `You are a professional, authentic machine translation engine.`,
+  userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
   temperature: 0,
   maxTokens: 256,
   fetchLimit: 1,
@@ -531,15 +540,17 @@ const defaultOpenaiApi = {
 const defaultOllamaApi = {
   url: "http://localhost:11434/api/generate",
   key: "",
-  model: "llama3",
-  prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}:\n\n${INPUT_PLACE_TEXT}`,
+  model: "llama3.1",
+  systemPrompt: `You are a professional, authentic machine translation engine.`,
+  userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+  thinkIgnore:`qwen3,deepseek-r1`,
   fetchLimit: 1,
   fetchInterval: 500,
 };
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: URL_GOOGLE_TRAN,
-    key: "",
+    key: DEFAULT_GOOGLE_API_KEY,
     fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
     fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
   },
@@ -586,7 +597,19 @@ export const DEFAULT_TRANS_APIS = {
     url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent?key=${INPUT_PLACE_KEY}`,
     key: "",
     model: "gemini-pro",
-    prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}:\n\n${INPUT_PLACE_TEXT}`,
+    systemPrompt: `You are a professional, authentic machine translation engine.`,
+    userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+    fetchLimit: 1,
+    fetchInterval: 500,
+  },
+  [OPT_TRANS_CLAUDE]: {
+    url: "https://api.anthropic.com/v1/messages",
+    key: "",
+    model: "claude-3-haiku-20240307",
+    systemPrompt: `You are a professional, authentic machine translation engine.`,
+    userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+    temperature: 0,
+    maxTokens: 1024,
     fetchLimit: 1,
     fetchInterval: 500,
   },
@@ -621,6 +644,7 @@ export const DEFAULT_SHORTCUTS = {
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
+export const HTTP_TIMEOUT = 5000; // 调用超时时间
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
   "https://translate.google.com",
@@ -638,6 +662,7 @@ export const DEFAULT_SETTING = {
   minLength: TRANS_MIN_LENGTH,
   maxLength: TRANS_MAX_LENGTH,
   newlineLength: TRANS_NEWLINE_LENGTH,
+  httpTimeout: HTTP_TIMEOUT,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
   // injectWebfix: true, // 是否注入修复补丁(作废)

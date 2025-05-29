@@ -186,6 +186,10 @@ export const I18N = {
     zh: `最大并发请求数量 (1-100)`,
     en: `Maximum Number Of Concurrent Requests (1-100)`,
   },
+  think_ignore:  {
+    zh: `忽略以下模型的<think>输出,逗号(,)分割`,
+    en: `Ignore the <think> block for the following models, comma (,) separated`,
+  },
   fetch_interval: {
     zh: `每次请求间隔时间 (0-5000ms)`,
     en: `Time Between Requests (0-5000ms)`,
@@ -193,6 +197,10 @@ export const I18N = {
   translate_interval: {
     zh: `重新翻译间隔时间 (100-5000ms)`,
     en: `Retranslation Interval (100-5000ms)`,
+  },
+  http_timeout: {
+    zh: `请求超时时间 (5000-30000ms)`,
+    en: `Request Timeout Time (5000-30000ms)`,
   },
   min_translate_length: {
     zh: `最小翻译字符数 (1-100)`,
@@ -427,8 +435,8 @@ export const I18N = {
     en: `Keep unchanged selector`,
   },
   keep_selector_helper: {
-    zh: `1、遵循CSS选择器语法。2、子元素选择器用“>>>”隔开。`,
-    en: `1. Follow CSS selector syntax. 2. Sub-element selectors are separated by ">>>".`,
+    zh: `1、遵循CSS选择器语法。`,
+    en: `1. Follow CSS selector syntax.`,
   },
   terms: {
     zh: `专业术语`,

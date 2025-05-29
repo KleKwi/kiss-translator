@@ -14,6 +14,7 @@ import {
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
@@ -114,7 +115,9 @@ function ApiFields({ translator }) {
     url = "",
     key = "",
     model = "",
-    prompt = "",
+    systemPrompt = "",
+    userPrompt = "",
+    thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     dictNo = "",
@@ -160,6 +163,7 @@ function ApiFields({ translator }) {
     OPT_TRANS_OPENAI_2,
     OPT_TRANS_OPENAI_3,
     OPT_TRANS_GEMINI,
+    OPT_TRANS_CLAUDE,
     OPT_TRANS_CLOUDFLAREAI,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OLLAMA_2,
@@ -212,6 +216,7 @@ function ApiFields({ translator }) {
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
         translator.startsWith(OPT_TRANS_OLLAMA) ||
+        translator === OPT_TRANS_CLAUDE ||
         translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
@@ -223,9 +228,18 @@ function ApiFields({ translator }) {
           />
           <TextField
             size="small"
-            label={"PROMPT"}
-            name="prompt"
-            value={prompt}
+            label={"SYSTEM PROMPT"}
+            name="systemPrompt"
+            value={systemPrompt}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+          />
+          <TextField
+            size="small"
+            label={"USER PROMPT"}
+            name="userPrompt"
+            value={userPrompt}
             onChange={handleChange}
             multiline
             maxRows={10}
@@ -233,7 +247,20 @@ function ApiFields({ translator }) {
         </>
       )}
 
-      {translator.startsWith(OPT_TRANS_OPENAI) && (
+      {(translator.startsWith(OPT_TRANS_OLLAMA)) && (
+        <>
+          <TextField
+            size="small"
+            label={i18n("think_ignore")}
+            name="thinkIgnore"
+            value={thinkIgnore}
+            onChange={handleChange}
+          />
+        </>
+      )}
+
+      {(translator.startsWith(OPT_TRANS_OPENAI) ||
+        translator === OPT_TRANS_CLAUDE) && (
         <>
           <TextField
             size="small"
